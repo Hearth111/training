@@ -175,7 +175,26 @@
         messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
         appId: "YOUR_FIREBASE_APP_ID"
     };
-    firebase.initializeApp(firebaseConfig);
+    if (window.firebase) {
+        firebase.initializeApp(firebaseConfig);
+    }
+
+    function dbRead(path) {
+        if (window.firebase && firebase.database) {
+            return firebase.database().ref(path).once('value').then(s => s.val());
+        } else {
+            return Promise.resolve(JSON.parse(localStorage.getItem(path)) || null);
+        }
+    }
+
+    function dbWrite(path, data) {
+        if (window.firebase && firebase.database) {
+            return firebase.database().ref(path).set(data);
+        } else {
+            localStorage.setItem(path, JSON.stringify(data));
+            return Promise.resolve();
+        }
+    }
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -237,8 +256,8 @@
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-            firebase.database().ref('records').once('value').then(snapshot => {
-                const records = snapshot.val() || {};
+            dbRead('records').then(records => {
+                records = records || {};
 
                 for (let i = 1; i <= lastDayDate; i++) {
                     const dayEl = document.createElement('div');

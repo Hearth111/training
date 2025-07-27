@@ -161,7 +161,26 @@
         messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
         appId: "YOUR_FIREBASE_APP_ID"
     };
-    firebase.initializeApp(firebaseConfig);
+    if (window.firebase) {
+        firebase.initializeApp(firebaseConfig);
+    }
+
+    function dbRead(path) {
+        if (window.firebase && firebase.database) {
+            return firebase.database().ref(path).once('value').then(s => s.val());
+        } else {
+            return Promise.resolve(JSON.parse(localStorage.getItem(path)) || null);
+        }
+    }
+
+    function dbWrite(path, data) {
+        if (window.firebase && firebase.database) {
+            return firebase.database().ref(path).set(data);
+        } else {
+            localStorage.setItem(path, JSON.stringify(data));
+            return Promise.resolve();
+        }
+    }
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -210,8 +229,8 @@
         
         const currentWeekId = getWeekNumber(targetDate);
         let selectedTechs = [];
-        firebase.database().ref(`tech/${currentWeekId}`).once('value').then(snapshot => {
-            selectedTechs = snapshot.val() || [];
+        dbRead(`tech/${currentWeekId}`).then(data => {
+            selectedTechs = data || [];
             renderMenu();
             loadData();
         });
@@ -283,7 +302,7 @@
                         const checked = document.querySelectorAll('input[name="tech-option"]:checked');
                         if (checked.length >= 2) {
                             selectedTechs = Array.from(checked).map(cb => cb.value);
-                            firebase.database().ref(`tech/${currentWeekId}`).set(selectedTechs);
+                            dbWrite(`tech/${currentWeekId}`, selectedTechs);
                             renderMenu(); // メニュー全体を再描画して「完了」チェックボックスを表示
                             loadData(); // 再描画後にデータを再読み込み
                         }
@@ -293,8 +312,8 @@
         }
 
         function loadData() {
-            firebase.database().ref(`records/${dateStr}`).once('value').then(snapshot => {
-                const data = snapshot.val() || {};
+            dbRead(`records/${dateStr}`).then(data => {
+                data = data || {};
                 if (data.checks) {
                     dailyMenu.forEach(item => {
                         const checkbox = document.getElementById(`check-${item.id}`);
@@ -345,7 +364,7 @@
                 exercised: exercised
             };
 
-            firebase.database().ref(`records/${dateStr}`).set(dataToSave);
+            dbWrite(`records/${dateStr}`, dataToSave);
             alert('記録を保存しました！カレンダーページに戻ります。');
             window.location.href = 'index.html';
         });
