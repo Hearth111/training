@@ -163,6 +163,20 @@
     </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "YOUR_FIREBASE_API_KEY",
+        authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+        databaseURL: "YOUR_FIREBASE_DB_URL",
+        projectId: "YOUR_FIREBASE_PROJECT_ID",
+        storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+        appId: "YOUR_FIREBASE_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+</script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('calendar');
@@ -174,26 +188,23 @@
 
         let currentDate = new Date();
 
-        function countPracticeDays() {
+        function countPracticeDays(records) {
             let totalCount = 0;
             let monthlyCount = 0;
             const currentMonth = currentDate.getMonth();
             const currentYear = currentDate.getFullYear();
 
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                // YYYY-MM-DD 形式のキーのみを対象
-                if (/^\d{4}-\d{2}-\d{2}$/.test(key)) {
-                    const data = JSON.parse(localStorage.getItem(key) || '{}');
-                    if (data.status === 'practiced' || data.status === 'exercised') {
-                        totalCount++;
-                        const date = new Date(key);
-                        if (date.getFullYear() === currentYear && date.getMonth() === currentMonth) {
-                            monthlyCount++;
-                        }
+            Object.keys(records).forEach(key => {
+                const data = records[key];
+                if (data.status === 'practiced' || data.status === 'exercised') {
+                    totalCount++;
+                    const date = new Date(key);
+                    if (date.getFullYear() === currentYear && date.getMonth() === currentMonth) {
+                        monthlyCount++;
                     }
                 }
-            }
+            });
+
             monthlyDaysEl.innerHTML = `${monthlyCount} <span>日</span>`;
             totalDaysEl.innerHTML = `${totalCount} <span>日</span>`;
         }
@@ -225,57 +236,62 @@
 
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            
-            for (let i = 1; i <= lastDayDate; i++) {
-                const dayEl = document.createElement('div');
-                dayEl.classList.add('day');
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                
-                if (dateStr === todayStr) {
-                    dayEl.classList.add('today');
+
+            firebase.database().ref('records').once('value').then(snapshot => {
+                const records = snapshot.val() || {};
+
+                for (let i = 1; i <= lastDayDate; i++) {
+                    const dayEl = document.createElement('div');
+                    dayEl.classList.add('day');
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+                    if (dateStr === todayStr) {
+                        dayEl.classList.add('today');
+                    }
+
+                    const link = document.createElement('a');
+                    link.href = `menu.html?date=${dateStr}`;
+
+                    const dateNum = document.createElement('span');
+                    dateNum.textContent = i;
+
+                    const statusMark = document.createElement('span');
+                    statusMark.classList.add('status-mark');
+
+                    const data = records[dateStr] || {};
+                    switch (data.status) {
+                        case 'practiced':
+                            statusMark.textContent = '●';
+                            statusMark.classList.add('status-practiced');
+                            break;
+                        case 'exercised':
+                            statusMark.textContent = '◎';
+                            statusMark.classList.add('status-exercised');
+                            break;
+                        case 'skipped':
+                            statusMark.textContent = '×';
+                            statusMark.classList.add('status-skipped');
+                            break;
+                        default:
+                            const targetDate = new Date(dateStr);
+                            targetDate.setHours(23, 59, 59, 999);
+                            if (targetDate < today && !data.status) {
+                                statusMark.textContent = '×';
+                                statusMark.classList.add('status-skipped');
+                            } else {
+                                statusMark.textContent = ' ';
+                            }
+                    }
+
+                    link.appendChild(dateNum);
+                    link.appendChild(statusMark);
+                    dayEl.appendChild(link);
+                    calendarEl.appendChild(dayEl);
                 }
 
-                const link = document.createElement('a');
-                link.href = `menu.html?date=${dateStr}`;
-                
-                const dateNum = document.createElement('span');
-                dateNum.textContent = i;
-                
-                const statusMark = document.createElement('span');
-                statusMark.classList.add('status-mark');
-                
-                const data = JSON.parse(localStorage.getItem(dateStr) || '{}');
-                switch (data.status) {
-                    case 'practiced':
-                        statusMark.textContent = '●';
-                        statusMark.classList.add('status-practiced');
-                        break;
-                    case 'exercised':
-                        statusMark.textContent = '◎';
-                        statusMark.classList.add('status-exercised');
-                        break;
-                    case 'skipped':
-                        statusMark.textContent = '×';
-                         statusMark.classList.add('status-skipped');
-                        break;
-                    default:
-                        const targetDate = new Date(dateStr);
-                        targetDate.setHours(23, 59, 59, 999);
-                        if (targetDate < today && !data.status) {
-                             statusMark.textContent = '×';
-                             statusMark.classList.add('status-skipped');
-                        } else {
-                            statusMark.textContent = ' ';
-                        }
-                }
-
-                link.appendChild(dateNum);
-                link.appendChild(statusMark);
-                dayEl.appendChild(link);
-                calendarEl.appendChild(dayEl);
-            }
-            // カレンダー生成後に日数をカウント
-            countPracticeDays();
+                // カレンダー生成後に日数をカウント
+                countPracticeDays(records);
+            });
         }
 
         prevMonthBtn.addEventListener('click', () => {

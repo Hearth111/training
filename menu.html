@@ -149,6 +149,20 @@
 </div>
 
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "YOUR_FIREBASE_API_KEY",
+        authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+        databaseURL: "YOUR_FIREBASE_DB_URL",
+        projectId: "YOUR_FIREBASE_PROJECT_ID",
+        storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+        appId: "YOUR_FIREBASE_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+</script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const dateDisplay = document.getElementById('date-display');
@@ -195,7 +209,12 @@
         }
         
         const currentWeekId = getWeekNumber(targetDate);
-        let selectedTechs = JSON.parse(localStorage.getItem(`tech-${currentWeekId}`) || '[]');
+        let selectedTechs = [];
+        firebase.database().ref(`tech/${currentWeekId}`).once('value').then(snapshot => {
+            selectedTechs = snapshot.val() || [];
+            renderMenu();
+            loadData();
+        });
         
         function renderMenu() {
             menuList.innerHTML = '';
@@ -264,7 +283,7 @@
                         const checked = document.querySelectorAll('input[name="tech-option"]:checked');
                         if (checked.length >= 2) {
                             selectedTechs = Array.from(checked).map(cb => cb.value);
-                            localStorage.setItem(`tech-${currentWeekId}`, JSON.stringify(selectedTechs));
+                            firebase.database().ref(`tech/${currentWeekId}`).set(selectedTechs);
                             renderMenu(); // メニュー全体を再描画して「完了」チェックボックスを表示
                             loadData(); // 再描画後にデータを再読み込み
                         }
@@ -274,18 +293,20 @@
         }
 
         function loadData() {
-            const data = JSON.parse(localStorage.getItem(dateStr) || '{}');
-            if (data.checks) {
-                dailyMenu.forEach(item => {
-                    const checkbox = document.getElementById(`check-${item.id}`);
-                    if (checkbox && data.checks[item.id]) {
-                        checkbox.checked = true;
-                    }
-                });
-            }
-            if (data.exercised) {
-                exerciseCheck.checked = true;
-            }
+            firebase.database().ref(`records/${dateStr}`).once('value').then(snapshot => {
+                const data = snapshot.val() || {};
+                if (data.checks) {
+                    dailyMenu.forEach(item => {
+                        const checkbox = document.getElementById(`check-${item.id}`);
+                        if (checkbox && data.checks[item.id]) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+                if (data.exercised) {
+                    exerciseCheck.checked = true;
+                }
+            });
         }
 
         saveBtn.addEventListener('click', () => {
@@ -324,14 +345,13 @@
                 exercised: exercised
             };
 
-            localStorage.setItem(dateStr, JSON.stringify(dataToSave));
+            firebase.database().ref(`records/${dateStr}`).set(dataToSave);
             alert('記録を保存しました！カレンダーページに戻ります。');
             window.location.href = 'index.html';
         });
 
         // --- Initial Load ---
-        renderMenu();
-        loadData();
+        // 初期データはFirebaseから取得後にrenderMenuとloadDataを実行
     });
 </script>
 
