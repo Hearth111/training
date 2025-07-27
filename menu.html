@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本日の練習メニュー</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 1rem;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1a73e8;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+        #date-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            color: #5f6368;
+        }
+        .menu-item {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border-left: 5px solid #1a73e8;
+            background-color: #f8f9fa;
+            border-radius: 0 8px 8px 0;
+        }
+        .menu-item h3 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+        .menu-item h3 .time {
+            font-size: 0.8rem;
+            font-weight: normal;
+            color: #5f6368;
+            margin-left: 0.5rem;
+            background: #e8f0fe;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+        }
+        .menu-item p {
+            margin: 0 0 0.5rem 0;
+            color: #3c4043;
+        }
+        .checkbox-container, .tech-checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-top: 0.8rem;
+        }
+        input[type="checkbox"] {
+            transform: scale(1.5);
+            margin-right: 0.8rem;
+            accent-color: #1a73e8;
+        }
+        #tech-selection h4 {
+            margin-bottom: 0.5rem;
+            color: #1a73e8;
+        }
+        #tech-selection p.instruction {
+            font-size: 0.9rem;
+            color: #5f6368;
+            margin-top: 0;
+        }
+        #tech-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.8rem;
+        }
+        .selected-tech-item {
+            margin-top: 1rem;
+            padding: 0.8rem;
+            background: #e8f0fe;
+            border-radius: 8px;
+        }
+        .selected-tech-item h5 {
+            margin: 0 0 0.3rem 0;
+            font-size: 1rem;
+            color: #1967d2;
+        }
+        .selected-tech-item p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        .btn-container {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        button {
+            background-color: #34a853;
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2c8e43;
+        }
+        a {
+            color: #1a73e8;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 1rem;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="index.html">‹ カレンダーに戻る</a>
+    <h1>本日のメニュー</h1>
+    <p id="date-display"></p>
+
+    <div id="menu-list">
+        </div>
+    
+    <div class="menu-item">
+        <h3>運動</h3>
+        <div class="checkbox-container">
+            <input type="checkbox" id="exercise-check">
+            <label for="exercise-check">完了</label>
+        </div>
+    </div>
+
+    <div class="btn-container">
+        <button id="save-btn">記録を保存</button>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateDisplay = document.getElementById('date-display');
+        const menuList = document.getElementById('menu-list');
+        const exerciseCheck = document.getElementById('exercise-check');
+        const saveBtn = document.getElementById('save-btn');
+
+        // --- Date setup ---
+        const urlParams = new URLSearchParams(window.location.search);
+        let dateStr = urlParams.get('date');
+        const targetDate = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+        if (!dateStr) {
+            dateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+        }
+        const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][targetDate.getDay()];
+        dateDisplay.textContent = `${targetDate.getFullYear()}年${targetDate.getMonth() + 1}月${targetDate.getDate()}日 (${dayOfWeek})`;
+
+        // --- Menu data ---
+        const dailyMenu = [
+            { id: 'warmup', title: '① ウォームアップ', time: '10分', content: 'ストレッチ＋リップロール＋ブレストレーニング' },
+            { id: 'vocalization', title: '② 発声練習', time: '10分', content: '地声～裏声の連携、共鳴ポイントの確認' },
+            { id: 'technique', title: '③ 技術練習', time: '10〜15分', content: '今週の選択項目を集中練習' },
+            { id: 'song', title: '④ 曲練習', time: '15〜30分', content: '歌ってみたい曲を1曲選んで練習・録音' },
+            { id: 'review', title: '⑤ クールダウン/振り返り', time: '5〜10分', content: '軽いハミングやため息で喉をリラックス。<br>その後、録音を聴いて良かった点／直したい点を書く。' }
+        ];
+
+        const techDetails = {
+            '音程安定': 'スロー再生で原曲と合わせて歌い、録音してズレ確認',
+            'リズム感': 'カラオケ音源にメトロノームを重ね、タイミングを意識',
+            '滑舌': '早口言葉（例：「外郎売」）と歌詞読み上げ',
+            '裏声・ミックス': 'ミックスボイス・裏声の丁寧な切り替え練習',
+            '抑揚・表現': '歌詞を朗読→歌に落とし込む練習',
+            '自己分析': '自分の過去歌ってみたを1曲聴き直して改善'
+        };
+        const techOptions = Object.keys(techDetails);
+
+        // --- Functions ---
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+            return `${d.getUTCFullYear()}-W${weekNo}`;
+        }
+        
+        const currentWeekId = getWeekNumber(targetDate);
+        let selectedTechs = JSON.parse(localStorage.getItem(`tech-${currentWeekId}`) || '[]');
+        
+        function renderMenu() {
+            menuList.innerHTML = '';
+            dailyMenu.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.classList.add('menu-item');
+                let contentHTML = `
+                    <h3>${item.title} <span class="time">${item.time}</span></h3>
+                    <p>${item.content}</p>`;
+
+                if (item.id === 'technique') {
+                    contentHTML += `<div id="tech-selection"></div>`;
+                    // 2つ選択されている場合のみ「完了」チェックボックスを表示
+                    if (selectedTechs.length === 2) {
+                        contentHTML += `
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="check-${item.id}">
+                            <label for="check-${item.id}">完了</label>
+                        </div>`;
+                    }
+                } else {
+                    contentHTML += `
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="check-${item.id}">
+                            <label for="check-${item.id}">完了</label>
+                        </div>`;
+                }
+                
+                itemEl.innerHTML = contentHTML;
+                menuList.appendChild(itemEl);
+            });
+            renderTechSelection();
+        }
+        
+        function renderTechSelection() {
+            const techContainer = document.getElementById('tech-selection');
+            if (!techContainer) return;
+            
+            if (selectedTechs.length === 2) {
+                let techListHTML = '<h4>今週のテーマ:</h4>';
+                selectedTechs.forEach(tech => {
+                    techListHTML += `
+                        <div class="selected-tech-item">
+                            <h5>${tech}</h5>
+                            <p>${techDetails[tech]}</p>
+                        </div>`;
+                });
+                techContainer.innerHTML = techListHTML;
+            } else {
+                let techOptionsHTML = `
+                    <h4>今週の技術練習を2つ選んでください</h4>
+                    <p class="instruction">一度選ぶと、この週は変更できません。</p>
+                    <div id="tech-options">`;
+                techOptions.forEach(tech => {
+                    techOptionsHTML += `
+                        <div class="tech-checkbox-container">
+                            <input type="checkbox" id="tech-opt-${tech}" name="tech-option" value="${tech}">
+                            <label for="tech-opt-${tech}">${tech}</label>
+                        </div>`;
+                });
+                techOptionsHTML += '</div>';
+                techContainer.innerHTML = techOptionsHTML;
+
+                document.querySelectorAll('input[name="tech-option"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        const checked = document.querySelectorAll('input[name="tech-option"]:checked');
+                        if (checked.length >= 2) {
+                            selectedTechs = Array.from(checked).map(cb => cb.value);
+                            localStorage.setItem(`tech-${currentWeekId}`, JSON.stringify(selectedTechs));
+                            renderMenu(); // メニュー全体を再描画して「完了」チェックボックスを表示
+                            loadData(); // 再描画後にデータを再読み込み
+                        }
+                    });
+                });
+            }
+        }
+
+        function loadData() {
+            const data = JSON.parse(localStorage.getItem(dateStr) || '{}');
+            if (data.checks) {
+                dailyMenu.forEach(item => {
+                    const checkbox = document.getElementById(`check-${item.id}`);
+                    if (checkbox && data.checks[item.id]) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+            if (data.exercised) {
+                exerciseCheck.checked = true;
+            }
+        }
+
+        saveBtn.addEventListener('click', () => {
+            if (selectedTechs.length < 2) {
+                 alert('今週の技術練習を2つ選択してください。');
+                 return;
+            }
+
+            const checks = {};
+            let practicedAtLeastOne = false;
+            dailyMenu.forEach(item => {
+                const checkbox = document.getElementById(`check-${item.id}`);
+                // 技術練習のチェックボックスは存在する場合のみ評価
+                if (checkbox) {
+                    checks[item.id] = checkbox.checked;
+                    if (checkbox.checked) {
+                        practicedAtLeastOne = true;
+                    }
+                } else {
+                    checks[item.id] = false; // 存在しない場合は未完了
+                }
+            });
+
+            const exercised = exerciseCheck.checked;
+            
+            let status = 'skipped'; // 未実施
+            if (practicedAtLeastOne && exercised) {
+                status = 'exercised'; // 練習+運動
+            } else if (practicedAtLeastOne) {
+                status = 'practiced'; // 練習のみ
+            }
+
+            const dataToSave = {
+                status: status,
+                checks: checks,
+                exercised: exercised
+            };
+
+            localStorage.setItem(dateStr, JSON.stringify(dataToSave));
+            alert('記録を保存しました！カレンダーページに戻ります。');
+            window.location.href = 'index.html';
+        });
+
+        // --- Initial Load ---
+        renderMenu();
+        loadData();
+    });
+</script>
+
+</body>
+</html>
