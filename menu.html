@@ -169,7 +169,12 @@
         if (window.firebase && firebase.database) {
             return firebase.database().ref(path).once('value').then(s => s.val());
         } else {
-            return Promise.resolve(JSON.parse(localStorage.getItem(path)) || null);
+            try {
+                return Promise.resolve(JSON.parse(localStorage.getItem(path)) || null);
+            } catch (e) {
+                console.warn('localStorage read failed', e);
+                return Promise.resolve(null);
+            }
         }
     }
 
@@ -177,7 +182,11 @@
         if (window.firebase && firebase.database) {
             return firebase.database().ref(path).set(data);
         } else {
-            localStorage.setItem(path, JSON.stringify(data));
+            try {
+                localStorage.setItem(path, JSON.stringify(data));
+            } catch (e) {
+                console.warn('localStorage write failed', e);
+            }
             return Promise.resolve();
         }
     }
