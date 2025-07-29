@@ -123,6 +123,12 @@
         a:hover {
             text-decoration: underline;
         }
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1rem;
+            padding: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -141,6 +147,11 @@
             <input type="checkbox" id="exercise-check">
             <label for="exercise-check">完了</label>
         </div>
+    </div>
+
+    <div class="menu-item">
+        <h3>振り返りメモ</h3>
+        <textarea id="memo-field" rows="4" placeholder="今日の振り返りを入力してください"></textarea>
     </div>
 
     <div class="btn-container">
@@ -166,9 +177,10 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const dateDisplay = document.getElementById('date-display');
-        const menuList = document.getElementById('menu-list');
-        const exerciseCheck = document.getElementById('exercise-check');
-        const saveBtn = document.getElementById('save-btn');
+       const menuList = document.getElementById('menu-list');
+       const exerciseCheck = document.getElementById('exercise-check');
+        const memoField = document.getElementById('memo-field');
+       const saveBtn = document.getElementById('save-btn');
 
         // --- Date setup ---
         const urlParams = new URLSearchParams(window.location.search);
@@ -306,6 +318,7 @@
                 if (data.exercised) {
                     exerciseCheck.checked = true;
                 }
+                memoField.value = data.memo || '';
             });
         }
 
@@ -331,6 +344,7 @@
             });
 
             const exercised = exerciseCheck.checked;
+            const memo = memoField.value;
             
             let status = 'skipped'; // 未実施
             if (practicedAtLeastOne && exercised) {
@@ -342,7 +356,8 @@
             const dataToSave = {
                 status: status,
                 checks: checks,
-                exercised: exercised
+                exercised: exercised,
+                memo: memo
             };
 
             dbWrite(`records/${dateStr}`, dataToSave);
