@@ -295,11 +295,15 @@
         }
 
         prevMonthBtn.addEventListener('click', () => {
+            // 月移動時に日付が31日のままだと月を飛び越えることがあるため1日に固定
+            currentDate.setDate(1);
             currentDate.setMonth(currentDate.getMonth() - 1);
             generateCalendar(currentDate);
         });
 
         nextMonthBtn.addEventListener('click', () => {
+            // 月移動時に日付が31日のままだと月を飛び越えることがあるため1日に固定
+            currentDate.setDate(1);
             currentDate.setMonth(currentDate.getMonth() + 1);
             generateCalendar(currentDate);
         });
